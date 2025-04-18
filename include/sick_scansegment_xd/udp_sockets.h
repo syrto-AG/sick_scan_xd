@@ -130,51 +130,98 @@ namespace sick_scansegment_xd
             }
         }
 
-        /** Opens a udp socket */
         bool Init(const std::string& udp_sender, int udp_port)
         {
             try
             {
+                // 1) Cross-platform WSA init (no-op on Linux)
                 wsa_init();
                 m_udp_sender = udp_sender;
-                m_udp_port = udp_port;
+                m_udp_port   = udp_port;
+        
+                // 2) Create UDP socket
                 m_udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
                 if (m_udp_socket == INVALID_SOCKET)
                 {
-                    ROS_ERROR_STREAM("## ERROR UdpReceiverSocketImpl::Init(" << m_udp_sender << ":" << m_udp_port << "): can't open socket, error: " << getErrorMessage());
+                    ROS_ERROR_STREAM("## ERROR UdpReceiverSocketImpl::Init("
+                                     << m_udp_sender << ":" << m_udp_port
+                                     << "): can't open socket, error: " << strerror(errno));
                     return false;
                 }
-                // #if defined WIN32 || defined _MSC_VER
-                // char broadcast_opt = 1, reuse_addr_opt = 1;
-                // #else
-                // int broadcast_opt = 1, reuse_addr_opt = 1;
-                // #endif
-                // setsockopt(m_udp_socket, SOL_SOCKET, SO_BROADCAST, &broadcast_opt, sizeof(broadcast_opt));
-                // setsockopt(m_udp_socket, SOL_SOCKET, SO_REUSEADDR, &reuse_addr_opt, sizeof(reuse_addr_opt));
-                struct sockaddr_in sim_servaddr = { 0 };
-                if(m_udp_sender.empty())
-                    sim_servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-                else
-                    sim_servaddr.sin_addr.s_addr = inet_addr(m_udp_sender.c_str()); 
-                sim_servaddr.sin_family = AF_INET;
-                sim_servaddr.sin_port = htons(m_udp_port);
-                ROS_INFO_STREAM("UdpReceiverSocketImpl: udp socket created, binding to port " << ntohs(sim_servaddr.sin_port) << " ... ");
-                if (bind(m_udp_socket, (SOCKADDR*)&sim_servaddr, sizeof(sim_servaddr)) < 0)
+        
+                // 3) Allow rapid rebinding of port
                 {
-                    ROS_ERROR_STREAM("## ERROR UdpReceiverSocketImpl::Init(" << m_udp_sender << ":" << m_udp_port << "): can't bind socket, error: " << getErrorMessage());
-                    closesocket(m_udp_socket);
+                    int reuse = 1;
+                    if (setsockopt(m_udp_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+                    {
+                        ROS_WARN_STREAM("setsockopt SO_REUSEADDR failed: " << strerror(errno));
+                    }
+        #ifdef SO_REUSEPORT
+                    if (setsockopt(m_udp_socket, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0)
+                    {
+                        ROS_WARN_STREAM("setsockopt SO_REUSEPORT failed: " << strerror(errno));
+                    }
+        #endif
+                }
+        
+                // 4) Prepare address structure
+                struct sockaddr_in sim_servaddr = {};
+                sim_servaddr.sin_family = AF_INET;
+                sim_servaddr.sin_port   = htons(m_udp_port);
+                sim_servaddr.sin_addr.s_addr =
+                    m_udp_sender.empty() ? htonl(INADDR_ANY)
+                                          : inet_addr(m_udp_sender.c_str());
+        
+                ROS_INFO_STREAM("UdpReceiverSocketImpl: udp socket created, binding to port "
+                                << ntohs(sim_servaddr.sin_port) << " ... ");
+        
+                // 5) Attempt bind with kill/retry on EADDRINUSE
+                const int MAX_BIND_RETRIES = 3;
+                for (int attempt = 0; attempt < MAX_BIND_RETRIES; ++attempt)
+                {
+                    if (bind(m_udp_socket,
+                             (struct sockaddr*)&sim_servaddr,
+                             sizeof(sim_servaddr)) == 0)
+                    {
+                        return true;  // bind succeeded
+                    }
+                    if (errno == EADDRINUSE)
+                    {
+                        ROS_WARN_STREAM("Port " << m_udp_port << " in use, attempt " << (attempt+1)
+                                         << "/" << MAX_BIND_RETRIES << ", killing existing process...");
+                        // Kill any process using this UDP port
+                        char cmd[64];
+                        snprintf(cmd, sizeof(cmd), "fuser -k %d/udp", m_udp_port);
+                        system(cmd);
+                        // Wait a bit before retrying
+                        sleep(1);
+                        continue;
+                    }
+                    // Other bind error
+                    ROS_ERROR_STREAM("## ERROR UdpReceiverSocketImpl::Init("
+                                     << m_udp_sender << ":" << m_udp_port
+                                     << "): bind failed, error: " << strerror(errno));
+                    close(m_udp_socket);
                     m_udp_socket = INVALID_SOCKET;
                     return false;
                 }
-                return true;
+        
+                // Final failure after retries
+                ROS_ERROR_STREAM("## ERROR UdpReceiverSocketImpl::Init("
+                                 << m_udp_sender << ":" << m_udp_port
+                                 << "): can't bind socket after retries, error: " << strerror(errno));
+                close(m_udp_socket);
+                m_udp_socket = INVALID_SOCKET;
+                return false;
             }
-            catch (std::exception & e)
+            catch (const std::exception & e)
             {
                 m_udp_socket = INVALID_SOCKET;
-                ROS_ERROR_STREAM("## ERROR UdpReceiverSocketImpl::Init(): can't open socket to " << m_udp_sender << ":" << m_udp_port << ", exception: " << e.what());
+                ROS_ERROR_STREAM("## ERROR UdpReceiverSocketImpl::Init(): exception: " << e.what());
                 return false;
             }
         }
+        
 
         /** Reads blocking until some data has been received successfully or an error occurs. Returns the number of bytes received. */
         size_t Receive(std::vector<uint8_t>& msg_payload)

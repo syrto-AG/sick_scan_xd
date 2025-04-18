@@ -10,9 +10,9 @@
     <arg name="publish_laserscan_segment_topic" default="scan_segment_est" />           <!-- topic of ros Laserscan segment messages -->
     <arg name="publish_laserscan_fullframe_topic" default="scan_fullframe_est" />       <!-- topic of ros Laserscan fullframe messages -->
     <arg name="imu_topic" default="imu_est" />                                          <!-- topic of ros IMU messages -->
-    <arg name="udp_port" default="2119" />                                          <!-- default udp port for multiScan devices is 2115 -->
+    <arg name="udp_port" default="2121" />                                          <!-- default udp port for multiScan devices is 2115 -->
     <arg name="imu_udp_port" default="7504"/>                                       <!-- udp port for multiScan imu data (if imu_enable is true) -->
-    <arg name="add_transform_xyz_rpy" default="15.351,0,0,0,-1.5708,0"/>
+    <arg name="add_transform_xyz_rpy" default="15.351,0,0,0,-1.5708,3.1416"/>
     <arg name="add_transform_check_dynamic_updates" default="false"/>               <!-- Note: dynamical updates of parameter add_transform_xyz_rpy can decrease the performance and is therefor deactivated by default -->
     <arg name="laserscan_layer_filter" default="0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0" /> <!-- Configuration of laserscan messages (ROS only), default: laserscan messages for layer 6 activated (hires layer, elevation -0.07 deg) -->
     <arg name="scandataformat" default="2"/>                                        <!-- ScanDataFormat: 1 for msgpack or 2 for compact scandata, default: 2 -->
