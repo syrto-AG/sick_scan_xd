@@ -3,8 +3,9 @@
 
     <!-- Launch multiScan -->
     <!-- env name="ROSCONSOLE_CONFIG_FILE" value="/tmp/rosconsole_loglevel_warn.conf" / -->
+    <param name="rosconsole/config_file" value="$(find sick_scan_xd)/config/rosconsole_no_info.yaml" />
     <arg name="hostname" default="172.22.19.30"/>                                    <!-- IP address of sensor -->
-    <arg name="udp_receiver_ip" default="172.22.19.36"/>                                        <!-- UDP destination IP address (ip address of udp receiver) -->
+    <arg name="udp_receiver_ip" default="172.22.19.231"/>                                        <!-- UDP destination IP address (ip address of udp receiver) -->
     <arg name="nodename" default="multiScan_middle"/>
     <arg name="publish_frame_id" default="world_middle" />                                 <!-- frame id of ros Laserscan messages, default: "world_<layer-id>" -->
     <arg name="publish_laserscan_segment_topic" default="scan_segment_middle" />           <!-- topic of ros Laserscan segment messages -->
@@ -24,7 +25,8 @@
     <arg name="host_set_LFPintervalFilter" default="False" />                       <!-- If true, LFPintervalFilter is set at startup (default: false) -->
     <arg name="custom_pointclouds" default="cloud_unstructured_segments cloud_unstructured_fullframe cloud_polar_unstructured_segments cloud_polar_unstructured_fullframe cloud_all_fields_fullframe"/> <!-- Default pointclouds: segmented and fullframe pointclouds, with all layers and echos in both cartesian and polar coordinates -->
     <arg name="tf_publish_rate" default="10.0" />                                   <!-- Rate to publish TF messages in hz, use 0 to deactivate TF messages -->
-    <node name="$(arg nodename)" pkg="sick_scan_xd" type="sick_generic_caller" respawn="false" output="screen" required="true">    
+    <node name="$(arg nodename)" pkg="sick_scan_xd" type="sick_generic_caller" respawn="false" output="screen" required="true">  
+        <param name="rosconsole/config_file" value="$(find sick_scan_xd)/config/rosconsole_no_info.yaml" />  
         <param name="scanner_type" type="string" value="sick_multiscan"/>
 
         <!-- network settings: -->

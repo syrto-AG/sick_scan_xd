@@ -3,8 +3,9 @@
 
     <!-- Launch multiScan -->
     <!-- env name="ROSCONSOLE_CONFIG_FILE" value="/tmp/rosconsole_loglevel_warn.conf" / -->
+    <param name="rosconsole/config_file" value="$(find sick_scan_xd)/config/rosconsole_no_info.yaml" />
     <arg name="hostname" default="172.22.19.31"/>                                    <!-- IP address of sensor -->
-    <arg name="udp_receiver_ip" default="172.22.19.36"/>                                        <!-- UDP destination IP address (ip address of udp receiver) -->
+    <arg name="udp_receiver_ip" default="172.22.19.231"/>                                        <!-- UDP destination IP address (ip address of udp receiver) -->
     <arg name="nodename" default="multiScan_est"/>
     <arg name="publish_frame_id" default="world_est" />                                 <!-- frame id of ros Laserscan messages, default: "world_<layer-id>" -->
     <arg name="publish_laserscan_segment_topic" default="scan_segment_est" />           <!-- topic of ros Laserscan segment messages -->
@@ -12,7 +13,7 @@
     <arg name="imu_topic" default="imu_est" />                                          <!-- topic of ros IMU messages -->
     <arg name="udp_port" default="2121" />                                          <!-- default udp port for multiScan devices is 2115 -->
     <arg name="imu_udp_port" default="7504"/>                                       <!-- udp port for multiScan imu data (if imu_enable is true) -->
-    <arg name="add_transform_xyz_rpy" default="10.033,-1.01,0,0.0174533,-1.5708,3.14159"/>
+    <arg name="add_transform_xyz_rpy" default="10.0,-1.01,0,0.0174533,-1.5708,3.14159"/>
     <arg name="add_transform_check_dynamic_updates" default="false"/>               <!-- Note: dynamical updates of parameter add_transform_xyz_rpy can decrease the performance and is therefor deactivated by default -->
     <arg name="laserscan_layer_filter" default="0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0" /> <!-- Configuration of laserscan messages (ROS only), default: laserscan messages for layer 6 activated (hires layer, elevation -0.07 deg) -->
     <arg name="scandataformat" default="2"/>                                        <!-- ScanDataFormat: 1 for msgpack or 2 for compact scandata, default: 2 -->
@@ -24,7 +25,8 @@
     <arg name="host_set_LFPintervalFilter" default="False" />                       <!-- If true, LFPintervalFilter is set at startup (default: false) -->
     <arg name="custom_pointclouds" default="cloud_unstructured_segments cloud_unstructured_fullframe cloud_polar_unstructured_segments cloud_polar_unstructured_fullframe cloud_all_fields_fullframe"/> <!-- Default pointclouds: segmented and fullframe pointclouds, with all layers and echos in both cartesian and polar coordinates -->
     <arg name="tf_publish_rate" default="10.0" />                                   <!-- Rate to publish TF messages in hz, use 0 to deactivate TF messages -->
-    <node name="$(arg nodename)" pkg="sick_scan_xd" type="sick_generic_caller" respawn="false" output="screen" required="true">    
+    <node name="$(arg nodename)" pkg="sick_scan_xd" type="sick_generic_caller" respawn="false" output="screen" required="true"> 
+        <param name="rosconsole/config_file" value="$(find sick_scan_xd)/config/rosconsole_no_info.yaml" />     
         <param name="scanner_type" type="string" value="sick_multiscan"/>
 
         <!-- network settings: -->
